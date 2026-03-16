@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>DS Auto Inventory ERP</title>
+<style>
+:root{
+  --bg:#0f1117; --surface:#1a1d27; --surface2:#222536; --border:#2e3347;
+  --text:#e8eaf6; --text2:#8b92b8; --text3:#5a6080;
+  --accent:#4f8ef7; --success:#34d399; --warning:#ffb340; --danger:#ff5c5c;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:Arial,"Noto Sans KR",sans-serif}
+body{min-height:100vh}
+button,input,select,textarea{font:inherit}
+.header{
+  background:var(--surface); border-bottom:1px solid var(--border);
+  padding:12px 18px; display:flex; gap:12px; align-items:center; justify-content:space-between;
+  position:sticky; top:0; z-index:100;
+}
+.logo{font-size:16px; font-weight:700; color:var(--accent)}
+.header-right{display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:flex-end}
+.main{max-width:1500px; margin:0 auto; padding:18px}
+.summary{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:18px}
+.card{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px}
+.card-label{font-size:12px; color:var(--text2); margin-bottom:6px}
+.card-value{font-size:24px; font-weight:700}
+.card-sub{font-size:11px; color:var(--text3); margin-top:4px}
+.tabs{display:flex; gap:6px; margin-bottom:16px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:4px; width:max-content; max-width:100%; overflow:auto}
+.tab{border:none; cursor:pointer; background:transparent; color:var(--text2); border-radius:8px; padding:8px 14px; white-space:nowrap}
+.tab.active{background:var(--accent); color:#fff}
+.toolbar{
+  display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px;
+  position:sticky; top:62px; z-index:60; background:var(--bg); padding:6px 0 10px;
+}
+.toolbar-left{display:flex; gap:8px; flex-wrap:wrap; flex:1}
+.btn{
+  border:none; cursor:pointer; border-radius:8px; padding:9px 14px;
+  background:var(--surface2); color:var(--text); border:1px solid var(--border)
+}
+.btn:hover{filter:brightness(1.05)}
+.btn-primary{background:var(--accent); border-color:transparent; color:#fff}
+.btn-danger{background:rgba(255,92,92,.12); color:var(--danger); border-color:rgba(255,92,92,.28)}
+.btn-ghost{background:var(--surface2)}
+input,select,textarea{
+  background:var(--surface); color:var(--text); border:1px solid var(--border);
+  border-radius:8px; padding:9px 11px; outline:none;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+.table-wrap{
+  background:var(--surface); border:1px solid var(--border); border-radius:12px;
+  overflow:auto; max-height:70vh;
+}
+table{width:100%; min-width:1800px; border-collapse:collapse; font-size:13px}
+th,td{padding:11px 12px; border-bottom:1px solid var(--border); white-space:nowrap; text-align:left}
+th{
+  background:var(--surface2); color:var(--text2); position:sticky; top:0; z-index:20;
+  font-size:11px; letter-spacing:.2px
+}
+tr:hover td{background:#262b3a}
+th:first-child, td:first-child{position:sticky; left:0; z-index:21}
+th:first-child{background:var(--surface2)}
+td:first-child{background:var(--surface)}
+th:last-child, td:last-child{position:sticky; right:0; z-index:21}
+th:last-child{background:var(--surface2)}
+td:last-child{background:var(--surface)}
+.badge{display:inline-block; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:700}
+.badge-ok{background:rgba(52,211,153,.12); color:var(--success); border:1px solid rgba(52,211,153,.22)}
+.badge-info{background:rgba(79,142,247,.12); color:var(--accent); border:1px solid rgba(79,142,247,.22)}
+.badge-warning{background:rgba(255,179,64,.12); color:var(--warning); border:1px solid rgba(255,179,64,.24)}
+.badge-danger{background:rgba(255,92,92,.12); color:var(--danger); border:1px solid rgba(255,92,92,.24)}
+.badge-person{background:rgba(108,99,255,.14); color:#b9b6ff; border:1px solid rgba(108,99,255,.28)}
+.bar-wrap{display:flex; align-items:center; gap:8px}
+.bar-bg{width:72px; height:4px; background:var(--border); border-radius:2px; overflow:hidden}
+.bar-fill{height:100%}
+.team-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+.team-card{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px}
+.team-name{font-size:14px; font-weight:700; color:var(--accent); margin-bottom:10px}
+.team-row{display:flex; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px solid var(--border)}
+.team-row:last-child{border-bottom:none}
+.person-stats{display:flex; gap:10px; color:var(--text2); font-size:12px}
+.empty{text-align:center; color:var(--text3); padding:40px}
+.modal-overlay{
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,.7);
+  z-index:200; align-items:center; justify-content:center; padding:14px;
+}
+.modal-overlay.show{display:flex}
+.modal{
+  background:var(--surface); border:1px solid var(--border); border-radius:16px;
+  width:min(100%, 760px); max-height:90vh; overflow:auto; padding:20px;
+}
+.modal-title{font-size:16px; font-weight:700; margin-bottom:16px}
+.form-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.form-group{display:flex; flex-direction:column; gap:6px}
+.form-group.full{grid-column:1 / -1}
+.form-label{font-size:11px; color:var(--text2)}
+.pnl-auto{background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:12px}
+.pnl-row{display:flex; justify-content:space-between; padding:4px 0}
+.pnl-total{border-top:1px solid var(--border); margin-top:6px; padding-top:8px; font-weight:700}
+.form-btns{display:flex; justify-content:flex-end; gap:8px; margin-top:16px; position:sticky; bottom:0; background:var(--surface); padding-top:12px}
+textarea{min-height:220px; resize:vertical}
+.small-note{font-size:12px; color:var(--text2); line-height:1.6}
+.hidden{display:none}
+@media (max-width:1024px){
+  .summary{grid-template-columns:repeat(2,1fr)}
+  .team-grid{grid-template-columns:1fr}
+}
+@media (max-width:768px){
+  .header{align-items:flex-start; flex-direction:column}
+  .header-right{width:100%; justify-content:flex-start}
+  .main{padding:12px}
+  .summary{grid-template-columns:1fr}
+  .toolbar{top:94px}
+  .toolbar-left{display:grid; grid-template-columns:1fr 1fr; width:100%}
+  .toolbar .btn-danger.bulk-delete{width:100%}
+  .form-grid{grid-template-columns:1fr}
+  .modal-overlay{padding:0; align-items:flex-end}
+  .modal{width:100%; max-height:88vh; border-radius:18px 18px 0 0}
+  table{min-width:1650px}
+}
+@media (max-width:480px){
+  .toolbar-left{grid-template-columns:1fr}
+  .card-value{font-size:20px}
+}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo">DS AUTO Inventory ERP</div>
+  <div class="header-right">
+    <span id="today-date" style="font-size:12px;color:var(--text3)"></span>
+    <button class="btn btn-ghost" onclick="exportCSV()">CSV 백업</button>
+    <button class="btn btn-ghost" onclick="triggerImport()">CSV 불러오기</button>
+    <button class="btn btn-danger" onclick="clearAllCars()">전체 삭제</button>
+    <button class="btn btn-ghost" onclick="openBatchModal()">일괄 등록</button>
+    <button class="btn btn-primary" onclick="openModal()">+ 차량 등록</button>
+    <input type="file" id="csv-file" accept=".csv,text/csv" class="hidden" onchange="importCSV(event)">
+  </div>
+</div>
+
+<div class="main">
+  <div class="summary" id="summary"></div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('list', this)">재고 목록</button>
+    <button class="tab" onclick="switchTab('team', this)">팀별 현황</button>
+  </div>
+
+  <div id="tab-list">
+    <div class="toolbar">
+      <button class="btn btn-danger bulk-delete" onclick="deleteSelected()">선택 삭제</button>
+      <div class="toolbar-left">
+        <input id="searchCar" placeholder="차량명/차번호 검색" oninput="render()">
+        <input id="searchPerson" placeholder="담당자/팀 검색" oninput="render()">
+        <select id="filterPerson" onchange="render()"></select>
+        <select id="filterTeam" onchange="render()"></select>
+        <select id="filterDays" onchange="render()">
+          <option value="">전체 기간</option>
+          <option value="30">30일 이상</option>
+          <option value="60">60일 이상</option>
+          <option value="90">90일 이상</option>
+        </select>
+        <select id="filterStatus" onchange="render()">
+          <option value="">전체 상태</option>
+          <option>정상</option><option>관찰</option><option>주의</option><option>위험</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)"></th>
+            <th>입고일</th>
+            <th>차량명</th>
+            <th>출처</th>
+            <th>유형</th>
+            <th>차번호</th>
+            <th>담당자</th>
+            <th>팀</th>
+            <th>재고기간</th>
+            <th>매입가</th>
+            <th>매도가</th>
+            <th>비용합계</th>
+            <th>원전금액</th>
+            <th>손익</th>
+            <th>상태</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="tab-team" style="display:none">
+    <div class="summary" id="person-summary" style="margin-bottom:14px"></div>
+    <div class="team-grid" id="team-grid"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">차량 등록</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">입고일</label>
+        <input type="date" id="f-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">담당자</label>
+        <select id="f-person"></select>
+      </div>
+      <div class="form-group full">
+        <label class="form-label">차량명</label>
+        <input id="f-car" placeholder="예) 그랜저 IG">
+      </div>
+      <div class="form-group">
+        <label class="form-label">출처</label>
+        <input id="f-source" placeholder="예) 고객 / 캐피탈">
+      </div>
+      <div class="form-group">
+        <label class="form-label">유형</label>
+        <input id="f-type" placeholder="예) C2B / B2B">
+      </div>
+      <div class="form-group">
+        <label class="form-label">차번호</label>
+        <input id="f-carno" placeholder="예) 123가1234">
+      </div>
+      <div class="form-group">
+        <label class="form-label">팀</label>
+        <select id="f-team"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">매입가 (원)</label>
+        <input type="number" id="f-buy" placeholder="18000000" oninput="calcPnl()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">매도가 (원)</label>
+        <input type="number" id="f-sell" placeholder="미판매시 0" oninput="calcPnl()">
+      </div>
+      <div class="form-group full">
+        <label class="form-label">기본 비용합계 (원)</label>
+        <input type="number" id="f-basecost" placeholder="탁송비/상품화/기타 합계" oninput="calcPnl()">
+      </div>
+      <div class="form-group full">
+        <label class="form-label">자동 계산</label>
+        <div class="pnl-auto">
+          <div class="pnl-row"><span style="color:var(--text2)">매도가</span><span id="p-sell">-</span></div>
+          <div class="pnl-row"><span style="color:var(--text2)">매입가</span><span id="p-buy">-</span></div>
+          <div class="pnl-row"><span style="color:var(--text2)">기본비용</span><span id="p-basecost">-</span></div>
+          <div class="pnl-row"><span style="color:var(--text2)">재고이자</span><span id="p-interest">-</span></div>
+          <div class="pnl-row"><span style="color:var(--text2)">비용합계</span><span id="p-cost">-</span></div>
+          <div class="pnl-row"><span style="color:var(--text2)">원전금액</span><span id="p-origin">-</span></div>
+          <div class="pnl-row pnl-total"><span>손익</span><span id="p-pnl">-</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="form-btns">
+      <button class="btn btn-ghost" onclick="closeModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveCar()">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="batch-modal">
+  <div class="modal">
+    <div class="modal-title">차량 일괄 등록</div>
+    <div class="small-note">엑셀에서 아래 순서대로 복사해서 붙여넣으세요.<br>
+      입고일 / 차량명 / 출처 / 유형 / 차번호 / 담당자 / 팀 / 매입가 / 매도가 / 기본비용합계
+    </div>
+    <div style="height:10px"></div>
+    <textarea id="batch-text" placeholder="2025-03-01&#9;그랜저 IG&#9;고객&#9;C2B&#9;123가1234&#9;박형원&#9;박형원팀&#9;18000000&#9;0&#9;450000"></textarea>
+    <div class="form-btns">
+      <button class="btn btn-ghost" onclick="closeBatchModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveBatch()">일괄 등록</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const PEOPLE = ['박형원','장민준','이준혁','한상진','김민성','정세영'];
+const TEAMS = ['박형원팀','한상진팀'];
+const today = new Date();
+document.getElementById('today-date').textContent = today.toLocaleDateString('ko-KR', {year:'numeric',month:'long',day:'numeric'});
+let editId = null;
+
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLlJnnLzriuso7DpLyR8gOudVRg8fmGJ96wn6pLtJ96SaEi_IpAK6hOPx2M64Cj-ERKQ/exec';
+let cars = [];
+let nextId = 1;
+let isLoading = false;
+
+function showLoading(msg='데이터 불러오는 중...'){
+  document.getElementById('tbody').innerHTML = `<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--text2)">${msg}</td></tr>`;
+}
+
+async function loadCars(){
+  isLoading = true;
+  showLoading();
+  try{
+    const res = await fetch(SCRIPT_URL + '?action=get');
+    const data = await res.json();
+    cars = data.map((c,i) => ({
+      id: i+1,
+      date: c.date||'',
+      car: c.car||'',
+      source: c.source||'',
+      type: c.type||'',
+      carNo: c.carNo||'',
+      person: c.person||'',
+      team: c.team||'',
+      buy: Number(c.buy)||0,
+      sell: Number(c.sell)||0,
+      baseCost: Number(c.baseCost)||0,
+      interest: Number(c.interest)||0,
+      memo: c.memo||''
+    }));
+    nextId = Math.max(0, ...cars.map(c=>c.id)) + 1;
+  }catch(e){
+    console.error(e);
+    cars = [];
+    document.getElementById('tbody').innerHTML = `<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--danger)">데이터 로드 실패. 새로고침 해주세요.</td></tr>`;
+  }
+  isLoading = false;
+}
+
+async function save(){
+  // 구글 시트에 전체 저장 (add/update/delete는 각 함수에서 직접 처리)
+}
+function days(dateStr){
+  const d = new Date(dateStr);
+  return Math.max(0, Math.floor((today - d)/86400000));
+}
+function calcInterestAmount(buy, dateStr){
+  const period = Math.floor(days(dateStr) / 30);
+  return Math.floor((Number(buy)||0) * 0.001 * period);
+}
+function totalCost(c){
+  return (Number(c.baseCost)||0) + calcInterestAmount(c.buy, c.date);
+}
+function originAmount(c){
+  return (Number(c.buy)||0) + totalCost(c);
+}
+function pnl(c){
+  return (Number(c.sell)||0) - originAmount(c);
+}
+function getStatus(day){
+  if(day >= 90) return '위험';
+  if(day >= 60) return '주의';
+  if(day >= 30) return '관찰';
+  return '정상';
+}
+function statusBadge(status){
+  const cls = {정상:'badge-ok', 관찰:'badge-info', 주의:'badge-warning', 위험:'badge-danger'}[status] || 'badge-ok';
+  return `<span class="badge ${cls}">${status}</span>`;
+}
+function barColor(day){
+  if(day >= 90) return 'var(--danger)';
+  if(day >= 60) return 'var(--warning)';
+  if(day >= 30) return 'var(--accent)';
+  return 'var(--success)';
+}
+
+function populateSelects(){
+  document.getElementById('filterPerson').innerHTML = `<option value="">전체 담당자</option>` + PEOPLE.map(p=>`<option>${p}</option>`).join('');
+  document.getElementById('filterTeam').innerHTML = `<option value="">전체 팀</option>` + TEAMS.map(t=>`<option>${t}</option>`).join('');
+  document.getElementById('f-person').innerHTML = PEOPLE.map(p=>`<option>${p}</option>`).join('');
+  document.getElementById('f-team').innerHTML = TEAMS.map(t=>`<option>${t}</option>`).join('');
+}
+populateSelects();
+
+function renderSummary(filtered){
+  const total = filtered.length;
+  const totalOrigin = filtered.reduce((s,c)=>s+originAmount(c),0);
+  const over90 = filtered.filter(c=>days(c.date)>=90).length;
+  const totalPnl = filtered.reduce((s,c)=>s+pnl(c),0);
+  document.getElementById('summary').innerHTML = `
+    <div class="card"><div class="card-label">전체 재고</div><div class="card-value">${total}대</div><div class="card-sub">현재 표시 기준</div></div>
+    <div class="card"><div class="card-label">90일 이상</div><div class="card-value" style="color:var(--danger)">${over90}대</div><div class="card-sub">장기재고</div></div>
+    <div class="card"><div class="card-label">총 원전금액</div><div class="card-value" style="color:var(--warning)">${totalOrigin.toLocaleString('ko-KR')}원</div><div class="card-sub">매입가+비용합계</div></div>
+    <div class="card"><div class="card-label">손익 합계</div><div class="card-value" style="color:${totalPnl>=0?'var(--success)':'var(--danger)'}">${totalPnl>=0?'+':''}${totalPnl.toLocaleString('ko-KR')}원</div><div class="card-sub">매도가-원전금액</div></div>
+  `;
+}
+
+function render(){
+  const fp = document.getElementById('filterPerson').value;
+  const ft = document.getElementById('filterTeam').value;
+  const fd = document.getElementById('filterDays').value;
+  const fs = document.getElementById('filterStatus').value;
+  const sc = (document.getElementById('searchCar').value || '').trim().toLowerCase();
+  const sp = (document.getElementById('searchPerson').value || '').trim().toLowerCase();
+
+  const filtered = cars.filter(c=>{
+    const d = days(c.date);
+    const s = getStatus(d);
+    if(fp && c.person !== fp) return false;
+    if(ft && c.team !== ft) return false;
+    if(fd && d < Number(fd)) return false;
+    if(fs && s !== fs) return false;
+    if(sc && !(`${c.car||''} ${c.carNo||''}`.toLowerCase().includes(sc))) return false;
+    if(sp && !(`${c.person||''} ${c.team||''}`.toLowerCase().includes(sp))) return false;
+    return true;
+  }).sort((a,b)=>days(b.date)-days(a.date));
+
+  renderSummary(filtered);
+
+  const tbody = document.getElementById('tbody');
+  if(!filtered.length){
+    tbody.innerHTML = `<tr><td colspan="16" class="empty">데이터가 없습니다</td></tr>`;
+  }else{
+    tbody.innerHTML = filtered.map(c=>{
+      const d = days(c.date);
+      const s = getStatus(d);
+      const cost = totalCost(c);
+      const origin = originAmount(c);
+      const profit = pnl(c);
+      const pct = Math.min(100, (d/120)*100);
+      return `<tr>
+        <td><input type="checkbox" class="row-check" value="${c.id}" onchange="syncSelectAll()"></td>
+        <td>${c.date || '-'}</td>
+        <td style="font-weight:700">${escapeHtml(c.car || '-')}</td>
+        <td>${escapeHtml(c.source || '-')}</td>
+        <td>${escapeHtml(c.type || '-')}</td>
+        <td>${escapeHtml(c.carNo || '-')}</td>
+        <td><span class="badge badge-person">${escapeHtml(c.person || '-')}</span></td>
+        <td>${escapeHtml(c.team || '-')}</td>
+        <td>
+          <div class="bar-wrap">
+            <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${barColor(d)}"></div></div>
+            <span style="color:${barColor(d)};font-weight:700">${d}일</span>
+          </div>
+        </td>
+        <td>${Number(c.buy||0).toLocaleString('ko-KR')}원</td>
+        <td style="color:${Number(c.sell||0)>0?'var(--text)':'var(--text3)'}">${Number(c.sell||0)>0 ? Number(c.sell||0).toLocaleString('ko-KR')+'원' : '미판매'}</td>
+        <td>${cost.toLocaleString('ko-KR')}원</td>
+        <td style="color:var(--warning);font-weight:700">${origin.toLocaleString('ko-KR')}원</td>
+        <td style="color:${profit>=0?'var(--success)':'var(--danger)'};font-weight:700">${profit>=0?'+':''}${profit.toLocaleString('ko-KR')}원</td>
+        <td>${statusBadge(s)}</td>
+        <td>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost" type="button" onclick="editCar(${c.id})">수정</button>
+            <button class="btn btn-danger" type="button" onclick="deleteCar(${c.id})">삭제</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+  document.getElementById('selectAll').checked = false;
+  renderTeam();
+}
+
+function renderTeam(){
+  const personSummary = document.getElementById('person-summary');
+  personSummary.innerHTML = PEOPLE.map(p=>{
+    const mine = cars.filter(c=>c.person===p);
+    const totalBuy = mine.reduce((s,c)=>s+originAmount(c),0);
+    return `<div class="card">
+      <div class="card-label">${p} 보유대수</div>
+      <div class="card-value">${mine.length}대</div>
+      <div class="card-sub">총 원전금액 ${totalBuy.toLocaleString('ko-KR')}원</div>
+    </div>`;
+  }).join('');
+
+  const members = {'박형원팀':['박형원','장민준','이준혁'],'한상진팀':['한상진','김민성','정세영']};
+  document.getElementById('team-grid').innerHTML = TEAMS.map(team=>{
+    const teamCars = cars.filter(c=>c.team===team);
+    const teamPnl = teamCars.reduce((s,c)=>s+pnl(c),0);
+    const rows = (members[team]||[]).map(person=>{
+      const list = teamCars.filter(c=>c.person===person);
+      const maxDays = list.length ? Math.max(...list.map(c=>days(c.date))) : 0;
+      return `<div class="team-row">
+        <span>${person} <span style="color:var(--text3);font-size:11px">${list.length}대</span></span>
+        <div class="person-stats">
+          <span style="color:${teamPnl>=0?'var(--success)':'var(--danger)'}">${list.reduce((s,c)=>s+pnl(c),0).toLocaleString('ko-KR')}원</span>
+          <span>${maxDays}일</span>
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="team-card">
+      <div class="team-name">${team} <span style="font-size:12px;color:var(--text2);font-weight:400">${teamCars.length}대 · ${teamPnl>=0?'+':''}${teamPnl.toLocaleString('ko-KR')}원</span></div>
+      ${rows}
+    </div>`;
+  }).join('');
+}
+
+function switchTab(tab, btn){
+  document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-list').style.display = tab==='list' ? 'block' : 'none';
+  document.getElementById('tab-team').style.display = tab==='team' ? 'block' : 'none';
+}
+
+function calcPnl(){
+  const date = document.getElementById('f-date').value;
+  const buy = Number(document.getElementById('f-buy').value || 0);
+  const sell = Number(document.getElementById('f-sell').value || 0);
+  const baseCost = Number(document.getElementById('f-basecost').value || 0);
+  const interest = date ? calcInterestAmount(buy, date) : 0;
+  const cost = baseCost + interest;
+  const origin = buy + cost;
+  const profit = sell - origin;
+
+  document.getElementById('p-sell').textContent = sell ? sell.toLocaleString('ko-KR')+'원' : '-';
+  document.getElementById('p-buy').textContent = buy ? '-'+buy.toLocaleString('ko-KR')+'원' : '-';
+  document.getElementById('p-basecost').textContent = baseCost ? '-'+baseCost.toLocaleString('ko-KR')+'원' : '-';
+  document.getElementById('p-interest').textContent = interest ? '-'+interest.toLocaleString('ko-KR')+'원' : '-';
+  document.getElementById('p-cost').textContent = cost ? cost.toLocaleString('ko-KR')+'원' : '-';
+  document.getElementById('p-origin').textContent = origin ? origin.toLocaleString('ko-KR')+'원' : '-';
+  document.getElementById('p-pnl').textContent = (profit>=0?'+':'') + profit.toLocaleString('ko-KR') + '원';
+  document.getElementById('p-pnl').style.color = profit >= 0 ? 'var(--success)' : 'var(--danger)';
+}
+
+function openModal(){
+  editId = null;
+  document.getElementById('modal-title').textContent = '차량 등록';
+  document.getElementById('f-date').value = today.toISOString().slice(0,10);
+  document.getElementById('f-car').value = '';
+  document.getElementById('f-source').value = '';
+  document.getElementById('f-type').value = '';
+  document.getElementById('f-carno').value = '';
+  document.getElementById('f-person').value = PEOPLE[0];
+  document.getElementById('f-team').value = TEAMS[0];
+  document.getElementById('f-buy').value = '';
+  document.getElementById('f-sell').value = '';
+  document.getElementById('f-basecost').value = '';
+  calcPnl();
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal(){
+  document.getElementById('modal').classList.remove('show');
+}
+function editCar(id){
+  const c = cars.find(x=>Number(x.id)===Number(id));
+  if(!c) return;
+  editId = c.id;
+  document.getElementById('modal-title').textContent = '차량 수정';
+  document.getElementById('f-date').value = c.date || '';
+  document.getElementById('f-car').value = c.car || '';
+  document.getElementById('f-source').value = c.source || '';
+  document.getElementById('f-type').value = c.type || '';
+  document.getElementById('f-carno').value = c.carNo || '';
+  document.getElementById('f-person').value = c.person || PEOPLE[0];
+  document.getElementById('f-team').value = c.team || TEAMS[0];
+  document.getElementById('f-buy').value = Number(c.buy||0);
+  document.getElementById('f-sell').value = Number(c.sell||0);
+  document.getElementById('f-basecost').value = Number(c.baseCost||0);
+  calcPnl();
+  document.getElementById('modal').classList.add('show');
+}
+async function saveCar(){
+  const car = document.getElementById('f-car').value.trim();
+  const date = document.getElementById('f-date').value;
+  if(!car || !date){ alert('입고일과 차량명은 필수입니다.'); return; }
+  const data = {
+    date, car,
+    source: document.getElementById('f-source').value.trim(),
+    type: document.getElementById('f-type').value.trim(),
+    carNo: document.getElementById('f-carno').value.trim(),
+    person: document.getElementById('f-person').value,
+    team: document.getElementById('f-team').value,
+    buy: Number(document.getElementById('f-buy').value||0),
+    sell: Number(document.getElementById('f-sell').value||0),
+    baseCost: Number(document.getElementById('f-basecost').value||0)
+  };
+  closeModal();
+  showLoading('저장 중...');
+  try{
+    if(editId){
+      await fetch(SCRIPT_URL, {method:'POST', body: JSON.stringify({action:'update', car:{...data, id:editId}})});
+    }else{
+      await fetch(SCRIPT_URL, {method:'POST', body: JSON.stringify({action:'add', car:data})});
+    }
+  }catch(e){ alert('저장 실패. 다시 시도해주세요.'); }
+  await loadCars();
+  render();
+}
+async function deleteCar(id){
+  const car = cars.find(c=>Number(c.id)===Number(id));
+  if(!car) return;
+  if(!confirm(`${car.car} 차량을 삭제할까요?`)) return;
+  showLoading('삭제 중...');
+  try{
+    await fetch(SCRIPT_URL, {method:'POST', body: JSON.stringify({action:'delete', id})});
+  }catch(e){ alert('삭제 실패. 다시 시도해주세요.'); }
+  await loadCars();
+  render();
+}
+
+function openBatchModal(){
+  document.getElementById('batch-text').value = '';
+  document.getElementById('batch-modal').classList.add('show');
+}
+function closeBatchModal(){
+  document.getElementById('batch-modal').classList.remove('show');
+}
+function saveBatch(){
+  const raw = document.getElementById('batch-text').value.trim();
+  if(!raw){
+    alert('붙여넣은 데이터가 없습니다.');
+    return;
+  }
+  const lines = raw.split(/\r?\n/).filter(Boolean);
+  let ok = 0;
+  const fail = [];
+  lines.forEach((line, idx)=>{
+    const cols = line.split('\t');
+    if(idx===0 && (cols[0]||'').trim()==='입고일') return;
+    if(cols.length < 10){
+      fail.push(idx+1);
+      return;
+    }
+    const date = (cols[0]||'').trim();
+    const car = (cols[1]||'').trim();
+    if(!date || !car){
+      fail.push(idx+1);
+      return;
+    }
+    cars.push({
+      id: nextId++,
+      date,
+      car,
+      source: (cols[2]||'').trim(),
+      type: (cols[3]||'').trim(),
+      carNo: (cols[4]||'').trim(),
+      person: (cols[5]||'').trim() || PEOPLE[0],
+      team: (cols[6]||'').trim() || TEAMS[0],
+      buy: Number(String(cols[7]||'0').replace(/,/g,'')) || 0,
+      sell: Number(String(cols[8]||'0').replace(/,/g,'')) || 0,
+      baseCost: Number(String(cols[9]||'0').replace(/,/g,'')) || 0
+    });
+    ok++;
+  });
+  save();
+  closeBatchModal();
+  render();
+  alert(ok + '건 등록 완료' + (fail.length ? '\n실패 행: ' + fail.join(', ') : ''));
+}
+
+function getSelectedIds(){
+  return Array.from(document.querySelectorAll('.row-check:checked')).map(el=>Number(el.value));
+}
+function toggleSelectAll(master){
+  document.querySelectorAll('.row-check').forEach(chk=>chk.checked = master.checked);
+}
+function syncSelectAll(){
+  const checks = Array.from(document.querySelectorAll('.row-check'));
+  const checked = checks.filter(c=>c.checked);
+  document.getElementById('selectAll').checked = checks.length>0 && checks.length===checked.length;
+}
+function deleteSelected(){
+  const ids = getSelectedIds();
+  if(!ids.length){
+    alert('삭제할 차량을 먼저 체크하세요.');
+    return;
+  }
+  if(!confirm(`선택한 ${ids.length}대 차량을 삭제할까요?`)) return;
+  cars = cars.filter(c=>!ids.includes(Number(c.id)));
+  save();
+  render();
+}
+
+function exportCSV(){
+  const headers = ['입고일','차량명','출처','유형','차번호','담당자','팀','매입가','매도가','기본비용합계'];
+  const rows = cars.map(c=>[
+    c.date||'', c.car||'', c.source||'', c.type||'', c.carNo||'',
+    c.person||'', c.team||'', c.buy||0, c.sell||0, c.baseCost||0
+  ]);
+  const csv = [headers, ...rows].map(row=>row.map(value=>{
+    const text = String(value ?? '');
+    if(/[",\n]/.test(text)) return '"' + text.replace(/"/g, '""') + '"';
+    return text;
+  }).join(',')).join('\n');
+  const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  const now = new Date();
+  const stamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+  a.href = URL.createObjectURL(blob);
+  a.download = `DSAuto_Inventory_Backup_${stamp}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+function triggerImport(){
+  const input = document.getElementById('csv-file');
+  input.value = '';
+  input.click();
+}
+function importCSV(event){
+  const file = event.target.files && event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const rows = parseCSV(String(e.target.result || ''));
+    if(!rows.length){
+      alert('불러올 데이터가 없습니다.');
+      return;
+    }
+    const first = rows[0].map(v=>(v||'').trim());
+    const hasHeader = first[0] === '입고일';
+    const dataRows = hasHeader ? rows.slice(1) : rows;
+    const incoming = [];
+    dataRows.forEach(cols=>{
+      if(!cols.length) return;
+      const date = (cols[0]||'').trim();
+      const car = (cols[1]||'').trim();
+      if(!date || !car) return;
+      incoming.push({
+        id: nextId++,
+        date,
+        car,
+        source:(cols[2]||'').trim(),
+        type:(cols[3]||'').trim(),
+        carNo:(cols[4]||'').trim(),
+        person:(cols[5]||'').trim() || PEOPLE[0],
+        team:(cols[6]||'').trim() || TEAMS[0],
+        buy:Number(String(cols[7]||'0').replace(/,/g,'')) || 0,
+        sell:Number(String(cols[8]||'0').replace(/,/g,'')) || 0,
+        baseCost:Number(String(cols[9]||'0').replace(/,/g,'')) || 0
+      });
+    });
+    if(!incoming.length){
+      alert('형식이 맞는 데이터가 없습니다.');
+      return;
+    }
+    if(!confirm(`${incoming.length}건을 현재 데이터에 추가할까요?`)) return;
+    cars = [...cars, ...incoming];
+    save();
+    render();
+    alert(incoming.length + '건 불러오기 완료');
+  };
+  reader.readAsText(file, 'utf-8');
+}
+function parseCSV(text){
+  text = text.replace(/^\ufeff/, '');
+  const rows = [];
+  let row = [];
+  let value = '';
+  let inQuotes = false;
+  for(let i=0;i<text.length;i++){
+    const ch = text[i], next = text[i+1];
+    if(inQuotes){
+      if(ch === '"' && next === '"'){ value += '"'; i++; }
+      else if(ch === '"'){ inQuotes = false; }
+      else { value += ch; }
+    }else{
+      if(ch === '"') inQuotes = true;
+      else if(ch === ','){ row.push(value); value=''; }
+      else if(ch === '\n'){
+        row.push(value.replace(/\r$/, ''));
+        if(row.some(cell=>String(cell).trim()!=='')) rows.push(row);
+        row = []; value = '';
+      }else{
+        value += ch;
+      }
+    }
+  }
+  row.push(value.replace(/\r$/, ''));
+  if(row.some(cell=>String(cell).trim()!=='')) rows.push(row);
+  return rows;
+}
+function clearAllCars(){
+  if(!cars.length){
+    alert('삭제할 차량이 없습니다.');
+    return;
+  }
+  if(!confirm(`현재 ${cars.length}대가 있습니다. 전체 삭제할까요?\n삭제 전에 CSV 백업을 먼저 받는 걸 추천합니다.`)) return;
+  if(!confirm('정말 전체 삭제할까요?')) return;
+  cars = [];
+  save();
+  render();
+}
+
+function escapeHtml(text){
+  return String(text).replace(/[&<>"']/g, s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+}
+
+window.addEventListener('click', function(e){
+  if(e.target.id === 'modal') closeModal();
+  if(e.target.id === 'batch-modal') closeBatchModal();
+});
+
+loadCars().then(()=>render());
+</script>
+</body>
+</html>
